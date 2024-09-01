@@ -1,0 +1,2 @@
+Exception has occurred: IntegrityError       (note: full exception trace is shown but execution is paused at: <module>)
+('23000', "[23000] [Microsoft][ODBC Microsoft Access Driver] You cannot add or change a record because a related record is required in table 'BelegnummerT'. (-1613) (SQLExecDirectW)")

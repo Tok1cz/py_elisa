@@ -1,0 +1,24 @@
+    Dim f    As Object
+    Dim path As String
+     Set f = Application.FileDialog(3)
+     f.AllowMultiSelect = False
+     f.InitialFileName = "V:\ELISA\Elisaausdrucke Parkplatz\"
+     f.Show
+     
+     MsgBox "Loading pdf from: " & f.SelectedItems(1)
+    path = f.SelectedItems(1)
+    Dim wsh As Object
+    Set wsh = VBA.CreateObject("WScript.Shell")
+    Dim waitOnReturn As Boolean: waitOnReturn = True
+    Dim windowStyle As Integer: windowStyle = 1
+    
+    wsh.Run "cmd.exe /S /K C:\Synch\pdf_elisa_reader_v1\py_elisa_reader.exe " & path, windowStyle, waitOnReturn
+    
+
+Exit_read_pdf_Click:
+    Exit Sub
+
+Err_read_pdf_Click:
+    MsgBox Err.Description
+    Resume Exit_read_pdf_Click
+    
