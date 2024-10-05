@@ -34,8 +34,8 @@ db_path = r"C:/Synch/MMT.mdb"
 
 pdf_path = " ".join(sys.argv[1::])
 
-pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\dateienmitzweiseiten\BrambachLW57-AI.pdf"
-print(pdf_path)
+# pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\dateienmitzweiseiten\BrambachLW57-AI.pdf"
+# print(pdf_path)
 
 connection_str = (
     rf"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path}"
