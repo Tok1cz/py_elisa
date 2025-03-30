@@ -4,12 +4,6 @@ import pyodbc
 import datetime
 import fitz
 
-"""TODO:
-Füge Testlaufbefunde (IBV,AI) hinzu, Abgrenzung small table
-Wichtig: Prüfe für neg_sus_pos, ob immer die ersten 4 Vertiefungen die Tests sind
-Mach das parsing allgemeiner..
-"""
-
 """
 Table Types:
 Biocheck - big_table 
@@ -26,6 +20,7 @@ IDEXX Small Font MultiHist - small_ipv_table
 TABLE_NAME = 'LaborbefundT'
 COLUMNS_BIG = 'BelegKomplett, PositionLab, ErgebnissDatum, Labornummer, Material, Kennzeichnung, Methode, Krankheit, Probenanzahl, AnzahlPos, AnzahlNeg, na, Titer, cv'
 COLUMNS_SMALL = 'BelegKomplett, PositionLab, ErgebnissDatum, Material, Kennzeichnung, Methode, Krankheit, Probenanzahl, AnzahlPos, AnzahlNeg, na'
+COLUMNS_MULTI = 'BelegKomplett, PositionLab, ErgebnissDatum,Labornummer, Material, Kennzeichnung, Methode, Krankheit, Probenanzahl, Titer, cv'
 
 db_path = r"C:/Synch/MMT.mdb"
 
@@ -34,8 +29,8 @@ db_path = r"C:/Synch/MMT.mdb"
 
 pdf_path = " ".join(sys.argv[1::])
 
-# pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\dateienmitzweiseiten\BrambachLW57-AI.pdf"
-# print(pdf_path)
+pdf_path = r"C:\Users\konst\Downloads\hilfe\Winningen_Sonder IBD_Histogramme.pdf"
+
 
 connection_str = (
     rf"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path}"
@@ -66,10 +61,10 @@ def insert_sql(cursor, table, columns, params):
 
 def fetch_values_big_table(content_list: list):
     # Positions of values in loaded pdf data
-    block_position_dict = {"beleg_komplett": 7, "ergebnis_datum": 19,
+    block_position_dict = {"beleg_komplett": 5, "ergebnis_datum": 14,
                            # Problem: steht vor DTiter
-                           "labor_nummer": 5, "kennzeichnung": 12, "krankheit": 20, "probenanzahl": 23,
-                           "neg_sus_pos": 22, "titer": 27, "cv": 30,  # check this one!!
+                           "labor_nummer": 3, "kennzeichnung": 10, "krankheit": 13, "probenanzahl_titer": 15,
+                           "neg_sus_pos": 16, "cv": 18,  # check this one!!
                            }
     # hopefully constant parts of positions
     CONST_BLOCK = 0
@@ -91,8 +86,8 @@ def fetch_values_big_table(content_list: list):
 
             elif sub_list[POS_INDEX] == block_position_dict["ergebnis_datum"]:
                 ergebnis_datum_raw = sub_list[4]
-                ergebnis_datum = ergebnis_datum_raw.replace(
-                    " ", "").replace("\n", "").replace(".", "/")
+                ergebnis_datum = ergebnis_datum_raw.split("Test Datum")[0].replace(
+                    "Blutentnahme", "").replace(":", "").strip().replace(".", "/")
 
             elif sub_list[POS_INDEX] == block_position_dict["labor_nummer"]:
                 labor_nummer_raw = sub_list[4]
@@ -104,28 +99,30 @@ def fetch_values_big_table(content_list: list):
 
             elif sub_list[POS_INDEX] == block_position_dict["krankheit"]:
                 krankheit_raw = sub_list[4]
-                krankheit = krankheit_raw.replace("\n", "").replace(" ", "")
-                krankheit = "-".join([krankheit.upper(), "BioChek"])
+                krankheit = krankheit_raw.split("Lot")[0].replace(
+                    "Test", "").replace(":", "").strip()
 
-            elif sub_list[POS_INDEX] == block_position_dict["probenanzahl"]:
-                probenanzahl_raw = sub_list[4]
+            elif sub_list[POS_INDEX] == block_position_dict["probenanzahl_titer"]:
+                probenanzahl_titer_raw = sub_list[4]
                 # watch this, it is weird that it is in front of Titer
-                probenanzahl = int(probenanzahl_raw.split("\n")[0])
+                titer_raw, probenanzahl_raw = probenanzahl_titer_raw.split(
+                    "No. Proben")
+                probenanzahl = int(probenanzahl_raw.replace(":", "").strip())
+                titer = int(titer_raw.replace(
+                    "Durchschnittstiter", "").replace(":", "").strip())
 
             elif sub_list[POS_INDEX] == block_position_dict["neg_sus_pos"]:
                 neg_sus_pos_raw = sub_list[4]
-                neg_sus_pos = neg_sus_pos_raw.split("\n")[0].split("/")
+                neg_sus_pos = neg_sus_pos_raw.split(
+                    "Neg/Sus/Pos")[1].replace(":", "").strip().split("/")
                 neg = int(neg_sus_pos[0])
                 sus = int(neg_sus_pos[1])
                 pos = int(neg_sus_pos[2])
 
-            elif sub_list[POS_INDEX] == block_position_dict["titer"]:
-                titer_raw = sub_list[4]
-                titer = int(titer_raw.replace("\n", "").replace(" ", ""))
-
             elif sub_list[POS_INDEX] == block_position_dict["cv"]:
                 cv_raw = sub_list[4]
-                cv = int(cv_raw.replace("\n", "").replace(" ", ""))
+                cv = int(cv_raw.replace("%CV", "").replace(":", "").strip())
+
     return (beleg_komplett, ergebnis_datum, labor_nummer, material, kennzeichnung, methode, krankheit, probenanzahl, pos, neg, sus, titer, cv)
 
 
@@ -151,8 +148,6 @@ def fetch_values_small_table(content_list: list):
                 for snip in beleg_komplett_raw:
                     if "Lab" in snip:
                         beleg_snip = snip
-                print(beleg_snip.strip().split("\n")[0].split(
-                    " ")[1].strip().replace("\n", ""))
 
                 beleg_komplett = beleg_snip.strip().split("\n")[0].split(" ")[
                     1].strip().replace("\n", "")
@@ -328,6 +323,48 @@ def fetch_values_ipv_table(content_list: list):
     return (beleg_komplett, ergebnis_datum, labor_nummer, material, kennzeichnung, methode, krankheit, probenanzahl, pos, neg, sus, titer, cv)
 
 
+def find_element_by_content_string(search_str: str, content_list: list):
+    return [el for el in content_list if search_str in el[4]][0]
+
+
+def get_values_multiflock_content(content_list: list):
+    material = "Serum"  # hardcoded change for others
+    methode = "ELISA"
+    labor_nummer = None
+
+    labor_nummer_raw = find_element_by_content_string("Lab code", content_list)[
+        4]
+    labor_nummer = labor_nummer_raw.replace(
+        "Lab code", "").replace(":", "").strip()
+    beleg_komplett_raw = find_element_by_content_string("Firma", content_list)[
+        4]
+    beleg_komplett = beleg_komplett_raw.replace(
+        "Firma", "").replace(":", "").strip()
+    ergebnis_datum_raw = find_element_by_content_string(
+        "Blutentnahmedatum", content_list)[4]
+    ergebnis_datum = ergebnis_datum_raw.replace(
+        "Blutentnahmedatum", "").replace(":", "").strip().replace(".", "/")
+    stallnr_raw = find_element_by_content_string(
+        "Stallnummer", content_list)[4]
+    kennzeichnung = stallnr_raw.replace(
+        "Stallnummer", "").replace(":", "").strip()
+    krankheit_raw = find_element_by_content_string(
+        "Assay", content_list)[4]
+    krankheit = krankheit_raw.split("Lot")[0].replace(
+        "Assay", "").replace(":", "").strip()
+    probenanzahl_raw = find_element_by_content_string(
+        "No.  samples", content_list)[4]
+    probenanzahl = int(probenanzahl_raw.split("No")[0].strip())
+    titer_cv_raw = find_element_by_content_string(
+        "Mean\nTiter", content_list)[4]
+    titer = int(titer_cv_raw.split("Titer")[1].split("VI")[
+        0].replace(":", "").strip())
+    cv = int(titer_cv_raw.split("Titer")[1].split(
+        "VI")[1].replace(":", "").split("\n")[1].strip())
+
+    return (beleg_komplett, ergebnis_datum, labor_nummer, material, kennzeichnung, methode, krankheit, probenanzahl,  titer, cv)
+
+
 def check_no_dup_get_position_big(compare_vals: list):
     global TABLE_NAME
     global COLUMNS
@@ -458,6 +495,51 @@ def check_no_dup_get_position_ipv(compare_vals: list):
         return (True, new_position_lab)
 
 
+def check_no_dup_get_position_multi(compare_vals: list):
+    global TABLE_NAME
+    global COLUMNS
+
+    beleg_komplett, ergebnis_datum, labor_nummer, material, methode, kennzeichnung, krankheit, probenanzahl, titer, cv = compare_vals
+
+    elisa_selection = cursor.execute(f"""Select *
+    FROM {TABLE_NAME}
+    WHERE
+    Methode='ELISA'
+    """)
+
+    existing_rows = elisa_selection.execute(f"""Select {COLUMNS_BIG}
+    FROM {TABLE_NAME}
+    WHERE
+    BelegKomplett='{beleg_komplett}'
+    """).fetchall()
+
+    duplicate = False
+    date_compare = datetime.datetime.strptime(ergebnis_datum, "%d/%m/%Y")
+
+    for row in existing_rows:
+        # check if duplicate
+        if (row[0] == beleg_komplett and row[2] == date_compare and
+            row[3] == labor_nummer and
+                row[12] == titer and row[13] == cv):
+            # Be more selective about krankheit:
+            # str(krankheit).lower() in str(row[7]).lower() and
+            duplicate = True
+
+    if duplicate:
+        return (False, -999)
+    else:
+        existing_position_labs = [row[1] for row in existing_rows]
+        # Remove values over a hundred, as there can different not relevant entries in the tables
+        clean_existing_position_labs = [
+            el for el in existing_position_labs if el < 100]
+        if clean_existing_position_labs:
+            new_position_lab = max(clean_existing_position_labs) + 1
+        else:
+            new_position_lab = 1
+
+        return (True, new_position_lab)
+
+
 def correct_next_page_postions(next_page: list, page_before: list) -> list:
     # We need to adjust page positions for multiple page reports, as positions of blocks are used on following pages
     page_before_last_index = page_before[-1][-2]
@@ -474,132 +556,168 @@ def correct_next_page_postions(next_page: list, page_before: list) -> list:
 skip_page_indices = []
 
 pages = list(doc.pages())
-# %%
-for i in range(len(pages)):
 
-    if i in skip_page_indices:
-        continue
-    try:
-        content_list = pages[i].get_text("blocks")
-        big_table = False
-        small_table = False
-        small_table_big_font = False
-        small_ipv_table = False
+is_multi_flock = "Multiple Flocks" in [
+    c for c in pages[0].get_text("blocks") if c[5] == 2][0][4]
 
-        for block in content_list:
-            # Check which kind of page (big table, small table, not parseable)
-            if block[5] == 7 and "Firma" in block[4]:  # def is_big_table
-                big_table = True
-                break
-            if "Titergruppen" in block[4]:
-                small_ipv_table = True
-                break
-            if block[5] == 13 and "Test" in block[4]:
-                small_table = True
-                for block in content_list:
-                    if "Titergruppen" in block[4]:
-                        small_table = False
-                        small_ipv_table = True
-                        break
-                break
-            if block[5] == 5 and "Test" in block[4]:
-                small_table_big_font = True
-                break
+if is_multi_flock:
+    full_content = []
+    for page in pages:
+        full_content.extend(page.get_text("blocks"))
 
-        # Determine whether it is a multi-page report:
-        might_have_next_page = True
-        potential_next_page_index = i + 1
-        page_before_content = content_list
-        while might_have_next_page:
-            if potential_next_page_index >= len(pages):
-                break
-            # TODO: Implement logice for small_table_big_font and small_ipv_table
-            next_page_content = pages[potential_next_page_index].get_text(
-                "blocks")
-            is_next_page_condition = False
+    start_indices = []
+    end_indices = []
 
-            if small_table:
-                # Das ist mal wieder ein Vorschlaghammerapproach hier...
-                if len(next_page_content) >= 4:
-                    is_next_page_condition = "Vertiefung" in next_page_content[3][4]
+    for i in range(len(full_content)):
+        if "Lab code" in full_content[i][4]:
+            start_indices.append((i))
+        if "Comment" in full_content[i][4]:
+            end_indices.append((i))
+
+    if len(start_indices) != len(end_indices):
+        print("Could not parse histogram pdf. Number of start elements does not match number of end elements!")
+    content_lists = []
+    for i in range(len(start_indices)):
+        content_lists.append(full_content[start_indices[i]:end_indices[i]])
+    for content_list in content_lists:
+        values = get_values_multiflock_content(content_list)
+        no_dup_and_position = check_no_dup_get_position_multi(values)
+        if no_dup_and_position[0]:
+            position_lab = no_dup_and_position[1]
+            params = list(values)
+            params.insert(1, position_lab)
+            insert_sql(cursor, TABLE_NAME, COLUMNS_MULTI, params)
+        else:
+            print("Entry already exists, Skipping ...")
+
+else:
+
+    for i in range(len(pages)):
+
+        if i in skip_page_indices:
+            continue
+        try:
+            content_list = pages[i].get_text("blocks")
+            big_table = False
+            small_table = False
+            small_table_big_font = False
+            small_ipv_table = False
+
+            for block in content_list:
+                # Check which kind of page (big table, small table, not parseable)
+                # def is_big_table
+                if (block[5] == 7 and "Firma" in block[4]) or block[5] == 5 and "Firma" in block[4]:
+                    big_table = True
+                    break
+                if "Titergruppen" in block[4]:
+                    small_ipv_table = True
+                    break
+                if block[5] == 13 and "Test" in block[4]:
+                    small_table = True
+                    for block in content_list:
+                        if "Titergruppen" in block[4]:
+                            small_table = False
+                            small_ipv_table = True
+                            break
+                    break
+                if block[5] == 5 and "Test" in block[4]:
+                    small_table_big_font = True
+                    break
+
+            # Determine whether it is a multi-page report:
+            might_have_next_page = True
+            potential_next_page_index = i + 1
+            page_before_content = content_list
+            while might_have_next_page:
+                if potential_next_page_index >= len(pages):
+                    break
+                # TODO: Implement logice for small_table_big_font and small_ipv_table
+                next_page_content = pages[potential_next_page_index].get_text(
+                    "blocks")
+                is_next_page_condition = False
+
+                if small_table:
+                    # Das ist mal wieder ein Vorschlaghammerapproach hier...
+                    if len(next_page_content) >= 4:
+                        is_next_page_condition = "Vertiefung" in next_page_content[3][4]
+                    else:
+                        might_have_next_page = False
+                # Not necessary - mutliple pages are counted differently..
+                if big_table:
+                    # using position number would be prettier...
+                    if next_page_content:
+                        is_next_page_condition = "pos" in next_page_content[0][
+                            4] or "neg" in next_page_content[0][4] or "sus" in next_page_content[0][4]
+                # TODO: Add:
+                #  if small_table_big font:
+                # ...
+                # if small_ipv_table:
+                # ...
+
+                if is_next_page_condition:
+                    next_page_content = correct_next_page_postions(
+                        next_page_content, page_before_content)  # We have to adjust position indices to avoid problems down the road.
+                    page_before_content = next_page_content
+                    content_list = content_list + next_page_content
+                    skip_page_indices.append(potential_next_page_index)
+                    potential_next_page_index += 1
+
                 else:
                     might_have_next_page = False
-            # Not necessary - mutliple pages are counted differently..
-            if big_table:
-                # using position number would be prettier...
-                if next_page_content:
-                    is_next_page_condition = "pos" in next_page_content[0][
-                        4] or "neg" in next_page_content[0][4] or "sus" in next_page_content[0][4]
-            # TODO: Add:
-            #  if small_table_big font:
-            # ...
-            # if small_ipv_table:
-            # ...
 
-            if is_next_page_condition:
-                next_page_content = correct_next_page_postions(
-                    next_page_content, page_before_content)  # We have to adjust position indices to avoid problems down the road.
-                page_before_content = next_page_content
-                content_list = content_list + next_page_content
-                skip_page_indices.append(potential_next_page_index)
-                potential_next_page_index += 1
+            if big_table:  # Assign the function
+                values = fetch_values_big_table(content_list)
+                no_dup_and_position = check_no_dup_get_position_big(values)
+                if no_dup_and_position[0]:
+                    position_lab = no_dup_and_position[1]
+                    params = list(values)
+                    params.insert(1, position_lab)
+                    insert_sql(cursor, TABLE_NAME, COLUMNS_BIG, params)
+                else:
+                    print("Entry already exists, Skipping ...")
+            elif small_table:
+                values = fetch_values_small_table(content_list)
+                no_dup_and_position = check_no_dup_get_position_small(values)
+                if no_dup_and_position[0]:
+                    position_lab = no_dup_and_position[1]
+                    params = list(values)
+                    params.insert(1, position_lab)
+                    insert_sql(cursor, TABLE_NAME, COLUMNS_SMALL, params)
+                else:
+                    print("Entry already exists, Skipping ...")
+            elif small_ipv_table:
+                values = fetch_values_ipv_table(content_list)
+                no_dup_and_position = check_no_dup_get_position_ipv(values)
+                if no_dup_and_position[0]:
+                    position_lab = no_dup_and_position[1]
+                    params = list(values)
+                    params.insert(1, position_lab)
+                    insert_sql(cursor, TABLE_NAME, COLUMNS_BIG, params)
+                else:
+                    print("Entry already exists, Skipping ...")
 
+            elif small_table_big_font:
+                values = fetch_values_small_table_big_font(content_list)
+                no_dup_and_position = check_no_dup_get_position_small(values)
+                if no_dup_and_position[0]:
+                    position_lab = no_dup_and_position[1]
+                    params = list(values)
+                    params.insert(1, position_lab)
+                    insert_sql(cursor, TABLE_NAME, COLUMNS_SMALL, params)
+                else:
+                    print("Entry already exists, Skipping ...")
             else:
-                might_have_next_page = False
+                print("Could not parse page.")
+                values = None
+                continue
 
-        if big_table:  # Assign the function
-            values = fetch_values_big_table(content_list)
-            no_dup_and_position = check_no_dup_get_position_big(values)
-            if no_dup_and_position[0]:
-                position_lab = no_dup_and_position[1]
-                params = list(values)
-                params.insert(1, position_lab)
-                insert_sql(cursor, TABLE_NAME, COLUMNS_BIG, params)
-            else:
-                print("Entry already exists, Skipping ...")
-        elif small_table:
-            values = fetch_values_small_table(content_list)
-            no_dup_and_position = check_no_dup_get_position_small(values)
-            if no_dup_and_position[0]:
-                position_lab = no_dup_and_position[1]
-                params = list(values)
-                params.insert(1, position_lab)
-                insert_sql(cursor, TABLE_NAME, COLUMNS_SMALL, params)
-            else:
-                print("Entry already exists, Skipping ...")
-        elif small_ipv_table:
-            values = fetch_values_ipv_table(content_list)
-            no_dup_and_position = check_no_dup_get_position_ipv(values)
-            if no_dup_and_position[0]:
-                position_lab = no_dup_and_position[1]
-                params = list(values)
-                params.insert(1, position_lab)
-                insert_sql(cursor, TABLE_NAME, COLUMNS_BIG, params)
-            else:
-                print("Entry already exists, Skipping ...")
-
-        elif small_table_big_font:
-            values = fetch_values_small_table_big_font(content_list)
-            no_dup_and_position = check_no_dup_get_position_small(values)
-            if no_dup_and_position[0]:
-                position_lab = no_dup_and_position[1]
-                params = list(values)
-                params.insert(1, position_lab)
-                insert_sql(cursor, TABLE_NAME, COLUMNS_SMALL, params)
-            else:
-                print("Entry already exists, Skipping ...")
-        else:
-            print("Could not parse page.")
-            values = None
+            print(values)
+        except UnboundLocalError as e:
+            print(e)
             continue
-
-        print(values)
-    except UnboundLocalError as e:
-        print(e)
-        continue
-    except IndexError as e:
-        print(e)
-        continue
+        except IndexError as e:
+            print(e)
+            continue
 
 
 # %%
