@@ -17,6 +17,13 @@ IDEXX Small Font MultiHist - small_ipv_table
 
 """
 
+"""
+Ready again_
+uncomment sql insert
+reinstate pdf path
+
+"""
+
 TABLE_NAME = 'LaborbefundT'
 COLUMNS_BIG = 'BelegKomplett, PositionLab, ErgebnissDatum, Labornummer, Material, Kennzeichnung, Methode, Krankheit, Probenanzahl, AnzahlPos, AnzahlNeg, na, Titer, cv'
 COLUMNS_SMALL = 'BelegKomplett, PositionLab, ErgebnissDatum, Material, Kennzeichnung, Methode, Krankheit, Probenanzahl, AnzahlPos, AnzahlNeg, na'
@@ -24,12 +31,10 @@ COLUMNS_MULTI = 'BelegKomplett, PositionLab, ErgebnissDatum,Labornummer, Materia
 
 db_path = r"C:/Synch/MMT.mdb"
 
-# pdf_path = r"C:\Users\konst\Documents\Py Workspace\py_elisa\problem_pdfs\Pilsenhöhe-AI.pdf"
-# "C:\Users\konst\Documents\Py Workspace\py_elisa\pdfs\Alain ET LW 18 Copy do not use\Altenmarhorst 18.LW.pdf"
 
 pdf_path = " ".join(sys.argv[1::])
 
-pdf_path = r"C:\Users\konst\Downloads\hilfe\Winningen_Sonder IBD_Histogramme.pdf"
+pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\problem_pdfs\Radefeld2-AI.pdf"
 
 
 connection_str = (
@@ -46,15 +51,15 @@ def insert_sql(cursor, table, columns, params):
 
     # Insertion call
     print(f"Inserting: {params}")
-    values_str = len(columns.split(","))*' ?,'
-    values_str = values_str.strip().strip(",")
+    # values_str = len(columns.split(","))*' ?,'
+    # values_str = values_str.strip().strip(",")
 
-    # UNCOMMENT THIS FOR PROD!!!
-    cursor.execute(f"""INSERT INTO
-            {TABLE_NAME}({columns})
-            values ({values_str})""", params)
+    # # UNCOMMENT THIS FOR PROD!!!
+    # cursor.execute(f"""INSERT INTO
+    #         {TABLE_NAME}({columns})
+    #         values ({values_str})""", params)
 
-    cursor.commit()
+    # cursor.commit()
 
     print(f"New Entry for {params[0]}-LabPos {params[1]} created!")
 

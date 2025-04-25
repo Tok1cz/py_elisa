@@ -1,1 +1,4 @@
 use the 32-bit version! install from env py32 and dont use the pyinstaller from the PATH
+also need to run 32 bit python ?
+Dont forget to uncomment the path from command line args.
+c:\users\konst\miniconda3\envs\py32\lib\site-packages

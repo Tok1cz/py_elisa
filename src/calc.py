@@ -1,10 +1,14 @@
 # %%
 import fitz
-from py_elisa_reader import check_no_dup_get_position_big, check_no_dup_get_position_ipv, check_no_dup_get_position_small, fetch_values_big_table, fetch_values_ipv_table, fetch_values_small_table, fetch_values_small_table_big_font, insert_sql
+
 import pyodbc
 import datetime
+from py_elisa_reader import check_no_dup_get_position_big, check_no_dup_get_position_ipv, check_no_dup_get_position_small, fetch_values_big_table, fetch_values_ipv_table, fetch_values_small_table, fetch_values_small_table_big_font, insert_sql
+import sys
+import os
 
-pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\dateienmitzweiseiten\BrambachLW57-IBV.pdf"
+
+pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\pdfs_standard\Alain ET LW 24 Copy do not use\Groß Stieten3 LW 24.pdf"
 
 doc = fitz.open(pdf_path)
 db_path = r"C:/Synch/MMT.mdb"
@@ -103,7 +107,8 @@ for i in range(len(pages)):
 
             if is_next_page_condition:
                 next_page_content = correct_next_page_postions(
-                    next_page_content, page_before_content)  # We have to adjust position indices to avoid problems down the road.
+                    # We have to adjust position indices to avoid problems down the road.
+                    next_page_content, page_before_content)
                 page_before_content = next_page_content
                 content_list = content_list + next_page_content
                 skip_page_indices.append(potential_next_page_index)
