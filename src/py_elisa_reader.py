@@ -14,7 +14,6 @@ IDEXX SMALL font - small_table
     - Idexx tables with small font
 IDEXX Small Font MultiHist - small_ipv_table 
     - IDEXX Table with big histogram nbins>2
-
 """
 
 """
@@ -34,7 +33,7 @@ db_path = r"C:/Synch/MMT.mdb"
 
 pdf_path = " ".join(sys.argv[1::])
 
-pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\problem_pdfs\Radefeld2-AI.pdf"
+pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\completeNew\Taucha_Sonder IBD_Histrogramme.pdf"
 
 
 connection_str = (
@@ -54,14 +53,13 @@ def insert_sql(cursor, table, columns, params):
     # values_str = len(columns.split(","))*' ?,'
     # values_str = values_str.strip().strip(",")
 
-    # # UNCOMMENT THIS FOR PROD!!!
     # cursor.execute(f"""INSERT INTO
     #         {TABLE_NAME}({columns})
     #         values ({values_str})""", params)
 
     # cursor.commit()
 
-    print(f"New Entry for {params[0]}-LabPos {params[1]} created!")
+    # print(f"New Entry for {params[0]}-LabPos {params[1]} created!")
 
 
 def fetch_values_big_table(content_list: list):
@@ -91,8 +89,8 @@ def fetch_values_big_table(content_list: list):
 
             elif sub_list[POS_INDEX] == block_position_dict["ergebnis_datum"]:
                 ergebnis_datum_raw = sub_list[4]
-                ergebnis_datum = ergebnis_datum_raw.split("Test Datum")[0].replace(
-                    "Blutentnahme", "").replace(":", "").strip().replace(".", "/")
+                ergebnis_datum = ergebnis_datum_raw.split(
+                    "Test Datum")[1].replace(":", "").strip().replace(".", "/")
 
             elif sub_list[POS_INDEX] == block_position_dict["labor_nummer"]:
                 labor_nummer_raw = sub_list[4]
@@ -104,8 +102,8 @@ def fetch_values_big_table(content_list: list):
 
             elif sub_list[POS_INDEX] == block_position_dict["krankheit"]:
                 krankheit_raw = sub_list[4]
-                krankheit = krankheit_raw.split("Lot")[0].replace(
-                    "Test", "").replace(":", "").strip()
+                krankheit = "-".join([krankheit_raw.split("Lot")[0].replace(
+                    "Test", "").replace(":", "").strip().upper(), "BioChek"])
 
             elif sub_list[POS_INDEX] == block_position_dict["probenanzahl_titer"]:
                 probenanzahl_titer_raw = sub_list[4]
@@ -346,17 +344,17 @@ def get_values_multiflock_content(content_list: list):
     beleg_komplett = beleg_komplett_raw.replace(
         "Firma", "").replace(":", "").strip()
     ergebnis_datum_raw = find_element_by_content_string(
-        "Blutentnahmedatum", content_list)[4]
-    ergebnis_datum = ergebnis_datum_raw.replace(
-        "Blutentnahmedatum", "").replace(":", "").strip().replace(".", "/")
+        "Test date", content_list)[4]
+    ergebnis_datum = ergebnis_datum_raw.split("Test date")[1].replace(
+        ":", "").strip().strip("\n").replace(".", "/")
     stallnr_raw = find_element_by_content_string(
         "Stallnummer", content_list)[4]
     kennzeichnung = stallnr_raw.replace(
         "Stallnummer", "").replace(":", "").strip()
     krankheit_raw = find_element_by_content_string(
         "Assay", content_list)[4]
-    krankheit = krankheit_raw.split("Lot")[0].replace(
-        "Assay", "").replace(":", "").strip()
+    krankheit = "-".join([krankheit_raw.split("Lot")[0].replace(
+        "Assay", "").replace(":", "").strip().upper(), "BioChek"])
     probenanzahl_raw = find_element_by_content_string(
         "No.  samples", content_list)[4]
     probenanzahl = int(probenanzahl_raw.split("No")[0].strip())
