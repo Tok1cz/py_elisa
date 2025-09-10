@@ -33,7 +33,7 @@ db_path = r"C:/Synch/MMT.mdb"
 
 pdf_path = " ".join(sys.argv[1::])
 
-pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\completeNew\Taucha_Sonder IBD_Histrogramme.pdf"
+# pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\completeNew\Taucha_Sonder IBD_Histrogramme.pdf"
 
 
 connection_str = (
@@ -50,16 +50,16 @@ def insert_sql(cursor, table, columns, params):
 
     # Insertion call
     print(f"Inserting: {params}")
-    # values_str = len(columns.split(","))*' ?,'
-    # values_str = values_str.strip().strip(",")
+    values_str = len(columns.split(","))*' ?,'
+    values_str = values_str.strip().strip(",")
 
-    # cursor.execute(f"""INSERT INTO
-    #         {TABLE_NAME}({columns})
-    #         values ({values_str})""", params)
+    cursor.execute(f"""INSERT INTO
+            {TABLE_NAME}({columns})
+            values ({values_str})""", params)
 
-    # cursor.commit()
+    cursor.commit()
 
-    # print(f"New Entry for {params[0]}-LabPos {params[1]} created!")
+    print(f"New Entry for {params[0]}-LabPos {params[1]} created!")
 
 
 def fetch_values_big_table(content_list: list):
