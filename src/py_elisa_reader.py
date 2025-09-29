@@ -3,7 +3,7 @@ import sys
 import pyodbc
 import datetime
 import fitz
-
+#%%
 """
 Table Types:
 Biocheck - big_table 
@@ -17,10 +17,9 @@ IDEXX Small Font MultiHist - small_ipv_table
 """
 
 """
-Ready again_
+Ready again
 uncomment sql insert
 reinstate pdf path
-
 """
 
 TABLE_NAME = 'LaborbefundT'
@@ -28,12 +27,12 @@ COLUMNS_BIG = 'BelegKomplett, PositionLab, ErgebnissDatum, Labornummer, Material
 COLUMNS_SMALL = 'BelegKomplett, PositionLab, ErgebnissDatum, Material, Kennzeichnung, Methode, Krankheit, Probenanzahl, AnzahlPos, AnzahlNeg, na'
 COLUMNS_MULTI = 'BelegKomplett, PositionLab, ErgebnissDatum,Labornummer, Material, Kennzeichnung, Methode, Krankheit, Probenanzahl, Titer, cv'
 
-db_path = r"C:/Synch/MMT.mdb"
+db_path = r"C:\Synch\DB 2025.accdb"
 
 
 pdf_path = " ".join(sys.argv[1::])
 
-# pdf_path = r"C:\Users\konst\Documents\py_workspace\py_elisa\pdfs\completeNew\Taucha_Sonder IBD_Histrogramme.pdf"
+# pdf_path = r"C:\Synch\Neubukow4_DE13-015_Sonder IBD.pdf"
 
 
 connection_str = (
@@ -44,7 +43,7 @@ connection = pyodbc.connect(connection_str)
 cursor = connection.cursor()
 
 doc = fitz.open(pdf_path)
-
+#%%
 
 def insert_sql(cursor, table, columns, params):
 
